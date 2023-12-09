@@ -66,7 +66,7 @@ keyPair = {
     "public_key": public_key_pem
 }
 
-def int_to_base64(value):
+def int_to_base64(value): # Converts an integer into base 64
     # Converts an integer to a Base64URL-encoded string
     value_hex = format(value, 'x')
     # Ensure even length
@@ -76,7 +76,7 @@ def int_to_base64(value):
     encoded = base64.urlsafe_b64encode(value_bytes).rstrip(b'=')
     return encoded.decode('utf-8')
 
-def pem_to_jwk(kid, pem_key, exp=None):
+def pem_to_jwk(kid, pem_key, exp=None): # Converts the pem key into jwk
     # Load the PEM key
     priv_key = serialization.load_pem_private_key(
         pem_key,
@@ -95,7 +95,7 @@ def pem_to_jwk(kid, pem_key, exp=None):
     }
     return jwk
 
-def StoreKeyInDatabase(priv_key, expiry):
+def StoreKeyInDatabase(priv_key, expiry): # P2: Stores the new key in the database
     conn = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = conn.cursor()
 
@@ -110,7 +110,7 @@ def StoreKeyInDatabase(priv_key, expiry):
         conn.close()
 
 
-def GetKeysFromDatabase():
+def GetKeysFromDatabase(): # P2: Gets the keys from the database
     conn = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = conn.cursor()
 
@@ -124,8 +124,8 @@ def GetKeysFromDatabase():
     finally:
         conn.close()
 
-#P3
-def StoreUser(username, hashedPassword, email): # Stores the user data for registering a user
+#P3:
+def StoreUser(username, hashedPassword, email): # P3: Stores the user data for registering a user
     conn = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = conn.cursor()
 
@@ -139,7 +139,7 @@ def StoreUser(username, hashedPassword, email): # Stores the user data for regis
     finally:
         conn.close()
 
-def GetUser(username, password):
+def GetUser(username, password): # P3: Gets the user data from the users table
     conn = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = conn.cursor()
 
@@ -156,14 +156,14 @@ def GetUser(username, password):
     except argon2.exceptions.VerifyMismatchError:
         return None
 
-def InsertAuthLog(ip, id):
+def InsertAuthLog(ip, id): # P3: Inserts the data into the auth_logs table
     conn = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = conn.cursor()
     cursor.execute("INSERT INTO auth_logs (request_ip, request_timestamp, user_id) VALUES (?, date('now'), ?) ", (ip, id))
     conn.commit()
     return
 
-
+# The methods in this class below handles HTTP requests
 class MyServer(BaseHTTPRequestHandler):
     def do_PUT(self):
         self.send_response(405)
@@ -185,7 +185,7 @@ class MyServer(BaseHTTPRequestHandler):
         self.end_headers()
         return
 
-    def do_POST(self):
+    def do_POST(self): # This method handles the POST requests
         parsed_path = urlparse(self.path)
         params = parse_qs(parsed_path.query)
         if parsed_path.path == "/auth":
@@ -257,7 +257,7 @@ class MyServer(BaseHTTPRequestHandler):
         self.end_headers()
         return
 
-    def do_GET(self):
+    def do_GET(self): # This method handles the GET requests
         if self.path == "/.well-known/jwks.json":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -274,13 +274,9 @@ class MyServer(BaseHTTPRequestHandler):
         self.end_headers()
         return
 
-
     keyID = "newKey1" # The key id
     expiry = datetime.now() + timedelta(hours=1) # Expiration time
     # keyPairJSON = json.dumps(keyPair) # Generates the key pair
-    # P2: Stores the new key pair in the database
-    #self.StoreKeyInDatabase(self, keyPair, expiry)
-
 
     # P3 functions below
     # Encryption function
@@ -314,7 +310,7 @@ class MyServer(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
 
-    #This database table is created to log authentication requests with schema
+    # This database table is created to log authentication requests with schema
     def CreateAuthLogsTable(self):
         conn = sqlite3.connect('totally_not_my_privateKeys.db')
         cursor = conn.cursor()
@@ -337,44 +333,12 @@ class MyServer(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
 
-    #app = Flask(__name__)
-    #@app.route('/auth', methods=['POST'])
-    # def authenticate_user(self, userID):
-    #     REQUESTS_DATA = {}
-    #     REQUEST_LIMIT = 10
-    #     TIME_FRAME = 1  # in seconds
-    #     client_ip = request.remote_addr
-    #
-    #     # Check if the IP is in the dictionary
-    #     if client_ip in REQUESTS_DATA:
-    #         # Get the list of timestamps for the IP
-    #         timestamps = REQUESTS_DATA[client_ip]
-    #
-    #         # Filter timestamps within the timeframe
-    #         recent_timestamps = [ts for ts in timestamps if time.time() - ts <= TIME_FRAME]
-    #
-    #         # If recent requests exceed the limit, return 429 Too Many Requests
-    #         if len(recent_timestamps) >= REQUEST_LIMIT:
-    #             return "429 Too Many Requests", 429
-    #
-    #         # Update the list of timestamps for the IP
-    #         REQUESTS_DATA[client_ip] = recent_timestamps + [time.time()]
-    #     else:
-    #         # If IP not in the dictionary, add it with the current timestamp
-    #         REQUESTS_DATA[client_ip] = [time.time()]
-    #
-    #     # Proceed with authentication logic here
-    #
-    #     # Log authentication if it succeeds
-    #     self.LogAuthentication(client_ip, userID)  # Implement your log function here
-    #     return jsonify({'message': 'Authentication successful'})
-
-    # Function Calls
+    # Function Calls for creating tables
     create_users_table(None)
     CreateAuthLogsTable(None)
     # RegisterUser(None)
     # LogAuthentication(None)
-    StoreKeyInDatabase(private_key_pem, expiry)
+    StoreKeyInDatabase(private_key_pem, expiry) # P2: Stores the new key in the database, default
 
 
 
